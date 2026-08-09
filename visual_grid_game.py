@@ -60,6 +60,8 @@ class VisualGridHuntGame:
         self.steps = 0
         self.collision = False
 
+        self.hit_wall = False
+
     def get_percept(self) -> dict:
         return {
             'agent_pos': list(self.agent_pos),
@@ -68,7 +70,7 @@ class VisualGridHuntGame:
 
             'smells_toxin': tuple(self.agent_pos) in self.toxic_traps,    # 2.2.1 - Check if the agent is on a toxic trap.
             
-            'hit_wall': tuple(self.agent_pos) in self.walls,
+            'hit_wall': self.hit_wall,
             'collision': self.collision,
             'score': self.score,
             'remaining_food': len(self.food_positions)
@@ -76,6 +78,7 @@ class VisualGridHuntGame:
 
     def execute_action(self, action: str):
         self.steps += 1
+        self.hit_wall = False
         new_pos = list(self.agent_pos)
 
         if action == 'Up':
@@ -87,32 +90,42 @@ class VisualGridHuntGame:
         elif action == 'Right':
             new_pos[0] = min(self.width - 1, new_pos[0] + 1)
 
+        moved = False
+
         if tuple(new_pos) in self.walls:
             self.score -= 5
+            self.hit_wall = True
         else:
             self.agent_pos = new_pos
+            moved = True
 
         tuple_pos = tuple(self.agent_pos)
+
         if tuple_pos in self.food_positions:
             self.food_positions.remove(tuple_pos)
             self.score += 20
 
 
         # 2.3.1 - Reduce the score if the agent steps on a toxic trap.
-        if tuple_pos in self.toxic_traps:
+        if moved and tuple_pos in self.toxic_traps:
             self.score -= 15
 
 
         for op in self.opponents:
             move = random.choice(['Up', 'Down', 'Left', 'Right', 'Stay'])
-            if move == 'Up' and op[1] < self.height - 1:
-                op[1] += 1
-            elif move == 'Down' and op[1] > 0:
-                op[1] -= 1
-            elif move == 'Left' and op[0] > 0:
-                op[0] -= 1
-            elif move == 'Right' and op[0] < self.width - 1:
-                op[0] += 1
+            new_op = list(op)
+            if move == 'Up' and new_op[1] < self.height - 1:
+                new_op[1] += 1
+            elif move == 'Down' and new_op[1] > 0:
+                new_op[1] -= 1
+            elif move == 'Left' and new_op[0] > 0:
+                new_op[0] -= 1
+            elif move == 'Right' and new_op[0] < self.width - 1:
+                new_op[0] += 1
+
+            if tuple(new_op) not in self.walls:
+                op[0] = new_op[0]
+                op[1] = new_op[1]
 
             if op == self.agent_pos:
                 self.score -= 50
@@ -134,7 +147,9 @@ class GridGameGUI:
 
         # Dynamically calculate cell size so the total canvas fits nicely within a 600x600 window ceiling
         max_canvas_dim = 600
-        self.cell_size = max(20, min(max_canvas_dim // self.env.width, max_canvas_dim // self.env.height))
+        self.cell_size = max(20, min(max_canvas_dim // self.env.width, 
+                                     max_canvas_dim // self.env.height))
+
 
         canvas_w = self.env.width * self.cell_size
         canvas_h = self.env.height * self.cell_size
@@ -224,5 +239,5 @@ class GridGameGUI:
 if __name__ == "__main__":
     root = tk.Tk()
     # Try a larger grid size like 12x12 with 15 food and 3 opponents!
-    app = GridGameGUI(root, width=12, height=12, num_food=15, num_opponents=0, num_traps=5)
+    app = GridGameGUI(root, width=12, height=12, num_food=15, num_opponents=2, num_traps=5)
     root.mainloop()
