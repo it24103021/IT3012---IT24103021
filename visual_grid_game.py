@@ -4,9 +4,11 @@ import tkinter as tk
 
 
 class VisualGridHuntGame:
-    """A flexible Pacman-style grid environment with support for configurable opponents and larger scales."""
+    """A flexible Pacman-style grid environment with support for configurable 
+    opponents and larger scales."""
 
-    def __init__(self, width=10, height=10, num_food=10, num_opponents=2, num_traps=5, custom_walls=None):
+    def __init__(self, width=10, height=10, num_food=10, 
+                 num_opponents=2, num_traps=5, custom_walls=None):
         self.width = width
         self.height = height
         self.agent_pos = [0, 0]  # Starting position (x, y)
@@ -27,7 +29,7 @@ class VisualGridHuntGame:
                 self.food_positions.add(pos_tuple)
 
 
-        # 2.1.1 - Generate toxic traps
+        # Lab 01 - Step 2.1.1 - Q9: Initialize toxic traps
         self.toxic_traps = set()
         while len(self.toxic_traps) < num_traps:
             tx = random.randint(0, self.width - 1)
@@ -52,14 +54,15 @@ class VisualGridHuntGame:
                 tuple(op_pos) != (0, 0) 
                 and tuple(op_pos) not in self.walls 
                 and tuple(op_pos) not in self.food_positions 
-                and tuple(op_pos) not in self.toxic_traps    # 2.1.1 - Prevent opponents from appearing on toxic traps.
+
+                # Lab 01 - Step 2.1.1 - Q9: Prevent opponents from spawning on toxic traps
+                and tuple(op_pos) not in self.toxic_traps
             ):
                 self.opponents.append(op_pos)
 
         self.score = 0
         self.steps = 0
         self.collision = False
-
         self.hit_wall = False
 
     def get_percept(self) -> dict:
@@ -68,7 +71,8 @@ class VisualGridHuntGame:
             'opponent_positions': [list(op) for op in self.opponents],
             'smells_food': tuple(self.agent_pos) in self.food_positions,
 
-            'smells_toxin': tuple(self.agent_pos) in self.toxic_traps,    # 2.2.1 - Check if the agent is on a toxic trap.
+            # Lab 01 - Step 2.2.1 - Q10: Add toxin sensor to the agent's percept
+            'smells_toxin': tuple(self.agent_pos) in self.toxic_traps,
             
             'hit_wall': self.hit_wall,
             'collision': self.collision,
@@ -106,7 +110,7 @@ class VisualGridHuntGame:
             self.score += 20
 
 
-        # 2.3.1 - Reduce the score if the agent steps on a toxic trap.
+        # Lab 01 - Step 2.3.1 - Q11: Apply a 15-point penalty when the agent enters a toxic trap
         if moved and tuple_pos in self.toxic_traps:
             self.score -= 15
 
@@ -138,12 +142,13 @@ class VisualGridHuntGame:
 class GridGameGUI:
     """Tkinter wrapper that dynamically scales cell sizes to keep larger grids on screen."""
 
-    def __init__(self, root, width=10, height=10, num_food=12, num_opponents=2, num_traps=5, walls=None):
+    def __init__(self, root, width=10, height=10, num_food=12, num_opponents=2, 
+                 num_traps=5, walls=None):
         self.root = root
         self.root.title("IT3012 - Scalable Multi-Agent Grid Hunt")
 
-        self.env = VisualGridHuntGame(width=width, height=height, num_food=num_food, num_traps=num_traps, num_opponents=num_opponents,
-                                      custom_walls=walls)
+        self.env = VisualGridHuntGame(width=width, height=height, num_food=num_food,
+                                      num_traps=num_traps, num_opponents=num_opponents, custom_walls=walls)
 
         # Dynamically calculate cell size so the total canvas fits nicely within a 600x600 window ceiling
         max_canvas_dim = 600
@@ -160,8 +165,8 @@ class GridGameGUI:
         self.label = tk.Label(root, text="Score: 0 | Steps: 0", font=("Arial", 14))
         self.label.pack(pady=10)
 
-        self.btn = tk.Button(root, text="Start Simulation", command=self.run_loop, font=("Arial", 12), bg="#000066",
-                             fg="white")
+        self.btn = tk.Button(root, text="Start Simulation", command=self.run_loop, 
+                             font=("Arial", 12), bg="#000066", fg="white")
         self.btn.pack(pady=5)
 
         self.draw_grid()
@@ -181,11 +186,11 @@ class GridGameGUI:
 
                 # Only draw text if cell is large enough
                 if self.cell_size >= 40 and (x, y) in self.env.walls:
-                    self.canvas.create_text(x1 + self.cell_size / 2, y1 + self.cell_size / 2, text="W", fill="white",
-                                            font=("Arial", 8, "bold"))
+                    self.canvas.create_text(x1 + self.cell_size / 2, y1 + self.cell_size / 2, text="W", 
+                                            fill="white", font=("Arial", 8, "bold"))
 
 
-        # 2.3.2 - Draw toxic traps as purple rectangle.
+        # Lab 01 - Step 2.3.2 - Q11: Render toxic traps as purple shapes
         for tx, ty in self.env.toxic_traps:
             offset = self.cell_size * 0.25
             x1 = tx * self.cell_size + offset
