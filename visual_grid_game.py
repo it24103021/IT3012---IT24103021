@@ -344,9 +344,8 @@ class GridGameGUI:
         self.root.title("IT3012 - Search Agent")
 
         self.env = VisualGridHuntGame(
-            width=width, height=height, num_food=num_food, 
+            width=width, height=height, num_food=num_food, custom_walls=walls) 
             # num_traps=num_traps, num_opponents=num_opponents,
-            custom_walls=walls)
 
         # CREATE SEARCH AGENT
         self.agent = SearchAgent(algorithm=algorithm)
@@ -468,8 +467,8 @@ if __name__ == "__main__":
     root = tk.Tk()
     # Lab 01,02 Try a larger grid size like 12x12 with 15 food and 3 opponents!
 
-    # LAB 03 - SELECT SEARCH ALGORITHM --> Use one of: "BFS", "DFS", "UCS"
-    SEARCH_ALGORITHM = "BFS"
+    # Lab 03, 04 - SELECT SEARCH ALGORITHM --> Use one of: "BFS", "DFS", "UCS", "AStar"
+    SEARCH_ALGORITHM = "AStar"
     app = GridGameGUI(root, width=12, height=12, num_food=15, algorithm=SEARCH_ALGORITHM)
     # Lab 02 num_opponents=3, num_traps=5, agent_type="simple"
     # Step 1.3 - Change agent_type= "simple" --> "model"

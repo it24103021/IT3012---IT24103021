@@ -1,6 +1,7 @@
 # agent.py
 from collections import deque
 import heapq
+import math
 # import random
 
 # Lab 01,Lab 02 - OLD AGENT
@@ -99,7 +100,29 @@ class SearchAgent:
         self.active_algo = algorithm.upper()
         self.plan = []
 
-    # Generate valid neighboring states for search
+    # Lab 04 - Step 1.1.3 - MANHATTAN DISTANCE HEURISTIC
+    def manhattan_distance(self, pos, goal):
+        """Calculate Manhattan distance between two positions.
+        Formula: h(n) = |x1 - x2| + |y1 - y2|
+        This is appropriate for a grid where the agent can move only Up, Down, Left, and Right."""
+
+        x1, y1 = pos
+        x2, y2 = goal
+        distance = abs(x1 - x2) + abs(y1 - y2)
+        return int(distance)
+
+    # Lab 04 - Step 1.1.4 - EUCLIDEAN DISTANCE HEURISTIC
+    def euclidean_distance(self, pos, goal):
+        """Calculate Euclidean distance between two positions.
+        Formula: h(n) = sqrt((x1-x2)^2 + (y1-y2)^2)
+        This represents the straight-line distance between the current position and the goal."""
+
+        x1, y1 = pos
+        x2, y2 = goal
+        distance = math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
+        return distance
+
+    # Lab 03 - Generate valid neighboring states
     def get_neighbors(self, position, walls, grid_size):
         """Return all valid neighboring states.
         Each result has the form:(new_position, action)"""
@@ -231,7 +254,100 @@ class SearchAgent:
                     )
         return None
 
-    # Lab 03 - SEARCH DISPATCHER
+    # Lab 04 - Step 1.2.1 - A* SEARCH
+    def astar_search(
+        self,
+        start_pos,
+        goal_pos,
+        walls,
+        grid_size,
+        heuristic_type='manhattan'
+    ):
+        """A* Search combines:
+            g(n) = cost from start to current node
+            h(n) = estimated cost from current node to goal
+            f(n) = g(n) + h(n)
+        A* selects the node with the lowest f(n)."""
+
+        start_pos = tuple(start_pos)
+        goal_pos = tuple(goal_pos)
+        walls = {tuple(wall) for wall in walls}
+
+        # Lab 04 - Select the heuristic function.
+        # Manhattan is the default because this environment allows only four-way movement.
+        if heuristic_type.lower() == 'manhattan':
+            heuristic = self.manhattan_distance
+        elif heuristic_type.lower() == 'euclidean':
+            heuristic = self.euclidean_distance
+        else:
+            raise ValueError("Unknown heuristic type.Use 'manhattan' or 'euclidean'.")
+
+        # Lab 04 - Step 1.2.2 - Initialize the A* priority queue.
+        # Tuple format:(f_cost, g_cost, current_pos, path_taken)
+        frontier = []
+        initial_g = 0
+        initial_h = heuristic(start_pos,goal_pos)
+        initial_f = initial_g + initial_h
+        counter = 0  # The counter prevents heap comparison problems if two nodes have equal f and g costs.
+
+        heapq.heappush(
+            frontier,
+            (initial_f, initial_g, counter, start_pos, [])
+        )
+
+        # Lab 04 - Step 1.2.2 - reached_states stores states that have already been processed.
+        reached_states = set()
+        # Lab 04 - Step 1.2.3,1.2.4 - A* main search loop
+        while frontier:
+            (
+                f_cost,
+                g_cost,
+                _,
+                current_pos,
+                path_taken
+            ) = heapq.heappop(frontier)
+
+            # Goal test
+            if current_pos == goal_pos:
+                return path_taken
+
+            # Skip a state that has already been expanded.
+            if current_pos in reached_states:
+                continue
+            reached_states.add(current_pos)
+
+            # Lab 04 - Step 1.2.5 - Expand all valid neighboring states.
+            for neighbor, action in self.get_neighbors(
+                current_pos,
+                walls,
+                grid_size
+            ):
+                if neighbor in reached_states:
+                    continue
+                new_g = g_cost + 1  # g(n): actual cost from start to neighbor
+                new_h = heuristic(  # h(n): estimated cost from neighbor to goal
+                    neighbor, 
+                    goal_pos
+                )
+                new_f = new_g + new_h  # f(n) = g(n) + h(n)
+                new_path = path_taken + [action]
+                counter += 1
+                # Add the new state to the priority queue.
+                heapq.heappush(
+                    frontier,
+                    (
+                        new_f,
+                        new_g,
+                        counter,
+                        neighbor,
+                        new_path
+                    )
+                )
+
+        # No path was found.
+        return None
+
+    # Lab 03, 04 - SEARCH DISPATCHER
     def search(self, start, goal, walls, grid_size):
         """Select and execute the requested search algorithm."""
         if self.active_algo == "BFS":
@@ -255,6 +371,18 @@ class SearchAgent:
                 walls,
                 grid_size
             )
+        
+        # Lab 04 - Step 1.3.2 A* Search option.
+        # self.active_algo is converted to uppercase in __init__, therefore "AStar" becomes "ASTAR".
+        elif self.active_algo == "ASTAR":
+            return self.astar_search(
+                start,
+                goal,
+                walls,
+                grid_size,
+                heuristic_type="manhattan"
+            )
+        
         else:
             raise ValueError(f"Unknown search algorithm: {self.active_algo}")
 
@@ -280,7 +408,8 @@ class SearchAgent:
             all_food = { tuple(food) for food in percept["all_food"] }
             if not all_food:
                 return "Collect"
-            # Select the closest food using Manhattan distance.
+            
+            # Lab 04 - Step 1.3.4 - Select the closest food as the A* goal.
             goal = min(
                 all_food,
                 key=lambda food:
@@ -294,6 +423,7 @@ class SearchAgent:
             )
             if self.plan is None:
                 self.plan = []
+
             # Display search information in terminal.
             print("Algorithm :", self.active_algo)
             print("Start     :", start)
@@ -307,3 +437,13 @@ class SearchAgent:
 
         # No path available.
         return "Collect"
+
+
+# Lab 04 - Step 1.1 Testing Checkpoint
+if __name__ == "__main__":
+    test_agent = SearchAgent()
+    start = (0, 0)
+    goal = (3, 4)
+
+    print("Manhattan Distance:", test_agent.manhattan_distance(start, goal))
+    print("Euclidean Distance:", test_agent.euclidean_distance(start, goal))
