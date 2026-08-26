@@ -1,7 +1,10 @@
 # visual_grid_game.py
 import random
 import tkinter as tk
+import os
 
+from agent import SearchAgent
+from PIL import Image, ImageTk
 
 class VisualGridHuntGame:
     """A flexible Pacman-style grid environment with support for configurable 
@@ -58,7 +61,6 @@ class VisualGridHuntGame:
                 tuple(op_pos) != (0, 0) 
                 and tuple(op_pos) not in self.walls 
                 and tuple(op_pos) not in self.food_positions 
-
                 # Lab 01 - Step 2.1.1 - Q9: Prevent opponents from spawning on toxic traps
                 and tuple(op_pos) not in self.toxic_traps
             ):
@@ -74,15 +76,19 @@ class VisualGridHuntGame:
         # Lab 02 - Step 1.1 - PARTIAL OBSERVABILITY
         # Do NOT return exact agent_pos or all opponent positions.Only return local sensor information.
         x, y = self.agent_pos
-        direction_vectors = {"Up": (0, 1),"Down": (0, -1),
-                             "Left": (-1, 0),"Right": (1, 0)}
+        direction_vectors = {"Up": (0, 1),
+                             "Down": (0, -1),
+                             "Left": (-1, 0),
+                             "Right": (1, 0)}
         dx, dy = direction_vectors[self.agent_facing]
         ahead_x = x + dx
         ahead_y = y + dy
 
         # Check whether the cell ahead is outside the grid
-        outside_grid = (ahead_x < 0 or ahead_x >= self.width
-                        or ahead_y < 0 or ahead_y >= self.height)
+        outside_grid = (ahead_x < 0 
+                        or ahead_x >= self.width
+                        or ahead_y < 0 
+                        or ahead_y >= self.height)
 
         # Lab 02 - Step 1.1 - Local boolean sensor
         wall_ahead = (outside_grid or (ahead_x, ahead_y) in self.walls)
@@ -93,6 +99,8 @@ class VisualGridHuntGame:
             "food_here": tuple(self.agent_pos) in self.food_positions,
             "opponent_here": any(op == self.agent_pos for op in self.opponents), # Local information only
             "toxin_here": tuple(self.agent_pos) in self.toxic_traps,
+            'hit_wall': self.hit_wall,
+            'collision': self.collision,
 
             # Lab 01
             #'agent_pos': list(self.agent_pos),
@@ -102,9 +110,6 @@ class VisualGridHuntGame:
             #'smells_toxin': tuple(self.agent_pos) in self.toxic_traps,
             #'score': self.score,
             #'remaining_food': len(self.food_positions)
-            
-            'hit_wall': self.hit_wall,
-            'collision': self.collision,
         }
 
     def execute_action(self, action: str):
@@ -113,10 +118,14 @@ class VisualGridHuntGame:
 
         # Lab 02 - Supporting modification
         # Lab 01 used:Up, Down, Left, Right || Lab 02 uses:Forward, TurnLeft, TurnRight, Collect
-        left_turn = {"Up": "Left", "Left": "Down",
-                     "Down": "Right", "Right": "Up"}
-        right_turn = {"Up": "Right", "Right": "Down",
-                      "Down": "Left", "Left": "Up"}
+        left_turn = {"Up": "Left", 
+                     "Left": "Down",
+                     "Down": "Right", 
+                     "Right": "Up"}
+        right_turn = {"Up": "Right", 
+                      "Right": "Down",
+                      "Down": "Left", 
+                      "Left": "Up"}
 
         # Lab 02 - Turning action
         if action == "TurnLeft":
@@ -133,27 +142,27 @@ class VisualGridHuntGame:
 
         # Lab 02 - Steps 1.2 and 1.3 - Move one cell in the current facing direction.
         elif action == "Forward":
-            movement = {"Up": (0, 1), "Down": (0, -1),
-                        "Left": (-1, 0), "Right": (1, 0) }
+            movement = {"Up": (0, 1), 
+                        "Down": (0, -1),
+                        "Left": (-1, 0), 
+                        "Right": (1, 0) }
             dx, dy = movement[self.agent_facing]
 
             new_pos = [self.agent_pos[0] + dx,
                        self.agent_pos[1] + dy]
-            outside_grid = (new_pos[0] < 0 or new_pos[0] >= self.width
-                or new_pos[1] < 0 or new_pos[1] >= self.height)
+            outside_grid = (new_pos[0] < 0 
+                            or new_pos[0] >= self.width
+                            or new_pos[1] < 0 
+                            or new_pos[1] >= self.height)
 
-            if (outside_grid or tuple(new_pos) in self.walls):
+            if outside_grid or tuple(new_pos) in self.walls:
                 self.score -= 5
                 self.hit_wall = True
 
             else:
                 self.agent_pos = new_pos
-
                 # Lab 01 - Step 2.3 - Q11 Toxic trap penalty retained from Lab 01.
-                if (
-                    tuple(self.agent_pos)
-                    in self.toxic_traps
-                ):
+                if tuple(self.agent_pos) in self.toxic_traps:
                     self.score -= 15
 
         # Lab 01      
@@ -211,22 +220,22 @@ class VisualGridHuntGame:
 # LAB 02 - STEP 1.2 - SIMPLE REFLEX AGENT
 # Important: No __init__() method, No memory, No percept history, Uses only current percept + IF-THEN rules.
 class SimpleReflexAgent:
+    """A simple reflex agent that acts purely on current percepts using IF-THEN rules."""
 
-    def sense_and_act(self, percept):
+    def sense_and_act(self, percept: dict) -> str:
         # Lab 02 - Step 1.2, CONDITION-ACTION RULE 1, IF food_here THEN Collect
         if percept["food_here"]:
             return "Collect"
-
         # Lab 02 - Step 1.2, CONDITION-ACTION RULE 2, IF wall_ahead THEN TurnLeft
         if percept["wall_ahead"]:
             return "TurnLeft"
-
         # Lab 02 - Step 1.2, CONDITION-ACTION RULE 3, ELSE Forward
         return "Forward"
 
 # LAB 02 - STEP 1.3 - MODEL-BASED AGENT
 # Maintains an internal memory/state.
 class ModelBasedAgent:
+    """A model-based agent that uses memory of visited cells."""
 
     def __init__(self):
 
@@ -237,26 +246,28 @@ class ModelBasedAgent:
         self.last_action = None
         self.percept_history = []
 
-    def turn_left(self, direction):
-        left_turn = {"Up": "Left","Left": "Down",
-            "Down": "Right","Right": "Up"}
-        return left_turn[direction]
+    def turn_left(self, direction: str) -> str:
+        return {"Up": "Left",
+                "Left": "Down",
+                "Down": "Right",
+                "Right": "Up"}[direction]
 
-    def turn_right(self, direction):
-        right_turn = {
-            "Up": "Right","Right": "Down",
-            "Down": "Left","Left": "Up"}
-        return right_turn[direction]
+    def turn_right(self, direction: str) -> str:
+        return {"Up": "Right",
+                "Right": "Down",
+                "Down": "Left",
+                "Left": "Up"}[direction]
 
-    def get_next_cell(self, direction):
+    def get_next_cell(self, direction: str) -> tuple:
         x, y = self.relative_position
-        movement = {"Up": (0, 1),"Down": (0, -1),
-            "Left": (-1, 0),"Right": (1, 0)}
+        movement = {"Up": (0, 1),
+                    "Down": (0, -1),
+                    "Left": (-1, 0),
+                    "Right": (1, 0)}
         dx, dy = movement[direction]
-        return (x + dx,
-                y + dy)
+        return (x + dx, y + dy)
 
-    def sense_and_act(self, percept):
+    def sense_and_act(self, percept: dict) -> str:
 
         # Lab 02 - Step 1.3 - SENSOR MODEL, Record the current percept.
         self.percept_history.append(dict(percept))
@@ -268,7 +279,7 @@ class ModelBasedAgent:
             self.facing = self.turn_right(self.facing)
         elif self.last_action == "Forward":
             # If the previous Forward action did not hit a wall,the agent assumes that it moved successfully.
-            if not percept["hit_wall"]:
+            if not percept.get["hit_wall", False]:
                 self.relative_position = (self.get_next_cell(self.facing))
 
         # Lab 02 - Step 1.3 - Remember current estimated position.
@@ -278,24 +289,15 @@ class ModelBasedAgent:
         # IF food_here THEN Collect
         if percept["food_here"]:
             action = "Collect"
-
         # IF wall_ahead AND left_is_visited: THEN TurnRight
         elif percept["wall_ahead"]:
             left_direction = self.turn_left(self.facing)
             left_cell = self.get_next_cell(left_direction)
-
-            if left_cell in self.visited_cells:  # We already explored left.
-                action = "TurnRight"
-            else:
-                action = "TurnLeft"
+            action = "TurnRight" if left_cell in self.visited_cells else "TurnLeft"  # We already explored left.
         else:
             forward_cell = self.get_next_cell(self.facing)
-
             # Lab 02 - Step 1.3 - Detect a repeated path using memory.
-            if forward_cell in self.visited_cells:  # Try another direction instead of repeating the same route.
-                action = "TurnRight"
-            else:
-                action = "Forward"
+            action = "TurnRight" if forward_cell in self.visited_cells else "Forward" # Try another direction instead of repeating the same route.
 
         # Lab 02 - Step 1.3 - Store the action for the next state update.
         self.last_action = action
@@ -308,9 +310,10 @@ class GridGameGUI:
         self.root = root
         self.root.title("IT3012 - Scalable Multi-Agent Grid Hunt")
 
-        self.env = VisualGridHuntGame(width=width, height=height, num_food=num_food, 
-                                      num_traps=num_traps, num_opponents=num_opponents,
-                                      custom_walls=walls)
+        self.env = VisualGridHuntGame(
+            width=width, height=height, num_food=num_food, 
+            num_traps=num_traps, num_opponents=num_opponents,
+            custom_walls=walls)
 
         # Lab 02 - Steps 1.2 and 1.3 - Select which agent architecture to run.
         if agent_type == "model":
@@ -391,17 +394,16 @@ class GridGameGUI:
                     fill="#000066", outline="#1e3a8a")
 
     def run_loop(self):
+        """Run the game simulation."""
+
         self.btn.config(state="disabled")
 
         def step():
             if not self.env.is_done():
-
                 # Lab 02 - SENSOR Environment -> get_percept()
                 percept = self.env.get_percept()
-
                 # Lab 02 - AGENT PROGRAM,Percept -> sense_and_act()
                 action = self.agent.sense_and_act(percept)
-
                 # Lab 02 - ACTUATOR,Execute selected action.
                 self.env.execute_action(action)
 
