@@ -5,7 +5,7 @@ import tkinter as tk
 from agent import SearchAgent
 
 class VisualGridHuntGame:
-    # Lab 01,Lab 01 """A flexible Pacman-style grid environment with support for configurable opponents and larger scales."""
+    # Lab 01,Lab 02 """A flexible Pacman-style grid environment with support for configurable opponents and larger scales."""
     """ The SearchAgent receives a global model containing:Agent position, Grid size, Walls, Food positions
     This allows the agent to perform offline search."""
 
