@@ -1,79 +1,13 @@
 # agent.py
+
 from collections import deque
 import heapq
 # import random
 
 # Lab 01,Lab 02 - OLD AGENT
-# class GreedyGridAgent:
-#    """A simple agent that tries to move around systematically to clear the grid."""
-#    def __init__(self):
-#        self.actions_pool = ['Up', 'Down', 'Left', 'Right']
-#    def sense_and_act(self, percept: dict) -> str:
-#        # If standing directly on food, or just wander / move towards coordinates
-#        pos = percept['agent_pos']
-#        # Simple heuristic or fallback random sweep
-#        return random.choice(self.actions_pool)
-
+# Lab 01 - Greedy Grid Agent
 # Lab 02 - SIMPLE REFLEX AGENT
-# class SimpleReflexAgent:
-#     def sense_and_act(self, percept):
-#         if percept["food_here"]:
-#             return "Collect"
-#         if percept["wall_ahead"]:
-#             return "TurnLeft"
-#         return "Forward"
-
 # LAB 02 - MODEL-BASED AGENT
-# class ModelBasedAgent:
-#     def __init__(self):
-#         self.visited_cells = set()
-#         self.relative_position = (0, 0)
-#         self.facing = "Up"
-#         self.last_action = None
-#         self.percept_history = []
-#     def turn_left(self, direction):
-#         return {
-#             "Up": "Left",
-#             "Left": "Down",
-#             "Down": "Right",
-#             "Right": "Up"}[direction]
-#     def turn_right(self, direction):
-#         return {
-#             "Up": "Right",
-#             "Right": "Down",
-#             "Down": "Left",
-#             "Left": "Up"}[direction]
-#     def get_next_cell(self, direction):
-#         x, y = self.relative_position
-#         movement = {
-#             "Up": (0, 1),
-#             "Down": (0, -1),
-#             "Left": (-1, 0),
-#             "Right": (1, 0)}
-#         dx, dy = movement[direction]
-#         return (x + dx, y + dy)
-#
-#     def sense_and_act(self, percept):
-#         self.percept_history.append(dict(percept))
-#         if self.last_action == "TurnLeft":
-#             self.facing = self.turn_left(self.facing)
-#         elif self.last_action == "TurnRight":
-#             self.facing = self.turn_right(self.facing)
-#         elif self.last_action == "Forward":
-#             if not percept.get("hit_wall", False):
-#                 self.relative_position = self.get_next_cell(self.facing)
-#         self.visited_cells.add(self.relative_position)
-#         if percept["food_here"]:action = "Collect"
-#         elif percept["wall_ahead"]:
-#             left_direction = self.turn_left(self.facing)
-#             left_cell = self.get_next_cell(left_direction)
-#             action = "TurnRight" if left_cell in self.visited_cells else "TurnLeft"
-#         else:
-#             forward_cell = self.get_next_cell(self.facing)
-#             action = "TurnRight" if forward_cell in self.visited_cells else "Forward"
-#         self.last_action = action
-#         return action
-
 
 # Lab 03 - SEARCH AGENT
 # The SearchAgent uses:
